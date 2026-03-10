@@ -27,4 +27,3 @@ yarn.lock
 *.sln
 *.sw?
 
-Dockerfile
