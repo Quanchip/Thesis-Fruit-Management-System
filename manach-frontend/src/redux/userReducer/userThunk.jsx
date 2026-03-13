@@ -21,7 +21,7 @@ export const getInfor = createAsyncThunk(
 	async (payload, { rejectWithValue }) => {
 		try {
 			const data = await userService.getInfor(payload)
-			return data
+			return data.data.content
 		} catch (error) {
 			console.log('error:', error)
 			return rejectWithValue(error?.response?.data?.message || 'Get info fail')
@@ -34,7 +34,7 @@ export const editProfile = createAsyncThunk(
 		try {
 			const data = await userService.editProfile(payload.id, payload.infor)
 			message.success('Change success')
-			return data
+			return data.data.content
 		} catch (error) {
 			console.log('error:', error)
 			return rejectWithValue(error?.response?.data?.message || 'Edit profile fail')
@@ -47,7 +47,7 @@ export const postSignUp = createAsyncThunk(
 		try {
 			const data = await userService.postSignUp(payload)
 			message.success('Create Account Success')
-			return data
+			return data.data.content
 		} catch (error) {
 			console.log('error:', error)
 			message.error('Create Account Fail')

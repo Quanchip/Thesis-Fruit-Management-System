@@ -102,7 +102,7 @@ const CusCheckOut = () => {
 	const showListCart = () => {
 		return list.map((item) => {
 			return (
-				<tr key={item.id} className="my-4">
+				<tr key={item.product_id} className="my-4">
 					<td className="text-left">Item {item.product_id}</td>
 					<td>${item.selling_price}</td>
 					<td>{item.quantity}</td>

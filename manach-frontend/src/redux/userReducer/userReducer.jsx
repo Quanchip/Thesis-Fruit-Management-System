@@ -35,16 +35,13 @@ const userReducer = createSlice({
 				state.roleName = userLocal.getRoleName()
 			})
 			.addCase(getInfor.fulfilled, (state, action) => {
-				if (!action.payload?.data?.content) return
-				let data = action.payload.data.content
-				userLocal.setInfor(data)
-				state.inforUser = data
+				if (!action.payload) return
+				userLocal.setInfor(action.payload)
+				state.inforUser = action.payload
 			})
 			.addCase(editProfile.fulfilled, (state, action) => {
-				if (!action.payload?.data?.content) return
-				console.log('.addCase ~ action:', action.payload.data.content)
-				const data = action.payload.data.content
-				state.inforUser = data
+				if (!action.payload) return
+				state.inforUser = action.payload
 			})
 			.addCase(postSignUp.fulfilled, (state, action) => {
 				console.log(action.payload)

@@ -12,8 +12,7 @@ export const cartThunk = createAsyncThunk(
 				payload.roleName,
 			)
 			message.success('build success')
-
-			return data
+			return data.data.content
 		} catch (error) {
 			console.log('error:', error)
 		}
@@ -26,7 +25,7 @@ export const postOrder = createAsyncThunk(
 			console.log('payload:', payload.user_id)
 			const data = await cartService.postOrder(payload.user_id, payload.data)
 			message.success('Order success')
-			return data
+			return data.data.content
 		} catch (error) {
 			console.log('error:', error)
 		}

@@ -16,10 +16,15 @@ const Login = () => {
 		}
 		dispatch(userThunk(data))
 			.then((res) => {
-				console.log(res.payload)
+				// rejectWithValue still resolves the promise, so we must check status
+				if (res.meta.requestStatus === 'rejected') {
+					return // Stay on login page
+				}
 				if (res.payload.role_id == 2) {
 					navigate('/customer/home')
-				} else navigate('/admin/home')
+				} else {
+					navigate('/admin/home')
+				}
 			})
 			.catch((err) => {
 				console.log(err)

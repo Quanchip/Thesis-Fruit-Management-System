@@ -36,6 +36,7 @@ import Dashboard from './routes/Home/Admin/Dashboard/Dashboard'
 import ASetting from './routes/Home/Admin/Setting/ASetting'
 import Warehouse from './routes/Home/Admin/Warehouse/Warehouse'
 import AStore from './routes/Home/Admin/Store/AStore'
+import ProtectedRoute from './components/ProtectedRoute'
 
 // import Loading from './components/Loading'
 
@@ -51,22 +52,26 @@ function App() {
 					<Route index path="" element={<AboutUs />} />
 
 					{/* All main pages */}
-					<Route path="customer" element={<CustomerTemplate />}>
-						<Route path="home" element={<Home />} />
-						<Route path="store" element={<CusStore />} />
-						<Route path="order" element={<CusOrder />} />
-						<Route path="check-out" element={<CusCheckOut />} />
-						<Route path="setting" element={<CusSetting />} />
-						<Route path="logout" element={<></>} />
+					<Route element={<ProtectedRoute allowedRoles={['customer']} />}>
+						<Route path="customer" element={<CustomerTemplate />}>
+							<Route path="home" element={<Home />} />
+							<Route path="store" element={<CusStore />} />
+							<Route path="order" element={<CusOrder />} />
+							<Route path="check-out" element={<CusCheckOut />} />
+							<Route path="setting" element={<CusSetting />} />
+							<Route path="logout" element={<></>} />
+						</Route>
 					</Route>
 
-					<Route path="admin" element={<AdminTemplate />}>
-						<Route path="home" element={<AHome />} />
-						<Route path="store" element={<AStore />} />
-						<Route path="warehouse" element={<Warehouse />} />
-						<Route path="dashboard" element={<Dashboard />} />
-						<Route path="setting" element={<ASetting />} />
-						<Route path="logout" element={<></>} />
+					<Route element={<ProtectedRoute allowedRoles={['admin']} />}>
+						<Route path="admin" element={<AdminTemplate />}>
+							<Route path="home" element={<AHome />} />
+							<Route path="store" element={<AStore />} />
+							<Route path="warehouse" element={<Warehouse />} />
+							<Route path="dashboard" element={<Dashboard />} />
+							<Route path="setting" element={<ASetting />} />
+							<Route path="logout" element={<></>} />
+						</Route>
 					</Route>
 
 					{/* Auth */}
