@@ -8,7 +8,7 @@ let model = initModels(sequelize);
 export const getInventory = async (req, res) => {
   try {
     let getProducts = await model.products.findAll({
-      attributes: ["product_id", "product_img", "product_name"],
+      attributes: ["product_id", "product_img", "product_name", "product_condition"],
       include: [
         {
           model: model.warehouse_products,
@@ -129,7 +129,7 @@ export const reorderProduct = async (req, res) => {
 export const getProductsShelfs = async (req, res) => {
   try {
     let getProducts = await model.products.findAll({
-      attributes: ["product_id", "product_img", "product_name"],
+      attributes: ["product_id", "product_img", "product_name", "product_condition"],
       include: [
         {
           model: model.shelf_products,

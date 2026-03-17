@@ -106,6 +106,20 @@ const TableProductList = () => {
 								fontWeight: 'bold',
 							}}
 						>
+							Condition
+						</th>
+						<th
+							style={{
+								border: '1px solid #485935',
+								color: '#485935',
+								fontSize: 20,
+								fontFamily: 'Poppins',
+								fontWeight: '500',
+								wordWrap: 'break-word',
+								textAlign: 'center',
+								fontWeight: 'bold',
+							}}
+						>
 							Quantity in stock
 						</th>
 						<th
@@ -162,6 +176,20 @@ const TableProductList = () => {
 									}}
 								>
 									{product.product_name}
+								</td>
+								<td
+									style={{
+										color: '#485935',
+										fontSize: 20,
+										fontFamily: 'Poppins',
+										fontWeight: '400',
+										wordWrap: 'break-word',
+										textAlign: 'center',
+										borderLeft: '1px solid #485935',
+										borderRight: '1px solid #485935',
+									}}
+								>
+									{product.product_condition || 'N/A'}
 								</td>
 								<td
 									style={{

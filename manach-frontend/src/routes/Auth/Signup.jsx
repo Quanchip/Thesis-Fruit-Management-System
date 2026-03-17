@@ -51,8 +51,12 @@ const Signup = () => {
 				phone: values.phone,
 				email: values.email,
 			}
-			dispatch(postSignUp(data))
-			navigate('/auth/welcome')
+			dispatch(postSignUp(data)).then((res) => {
+				if (res.meta.requestStatus === 'rejected') {
+					return // stay on page if signup failed
+				}
+				navigate('/customer/home')
+			})
 		},
 	})
 

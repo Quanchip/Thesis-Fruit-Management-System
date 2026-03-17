@@ -45,6 +45,15 @@ const userReducer = createSlice({
 			})
 			.addCase(postSignUp.fulfilled, (state, action) => {
 				console.log(action.payload)
+				if (!action.payload || !action.payload.user_id || !action.payload.role_id) {
+					return
+				}
+				localStorage.setItem('token', action.payload.access_token);
+				userLocal.setId(action.payload.user_id)
+				userLocal.setRoleName(action.payload.role_id)
+				state.userId = action.payload.user_id
+				state.roleId = action.payload.role_id
+				state.roleName = userLocal.getRoleName()
 			})
 	},
 })

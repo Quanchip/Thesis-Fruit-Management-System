@@ -37,7 +37,9 @@ export const editProfile = createAsyncThunk(
 			return data.data.content
 		} catch (error) {
 			console.log('error:', error)
-			return rejectWithValue(error?.response?.data?.message || 'Edit profile fail')
+			const errorMsg = error?.response?.data || error?.response?.data?.message || 'Edit profile fail'
+			message.error(typeof errorMsg === 'string' ? errorMsg : 'Edit profile fail')
+			return rejectWithValue(errorMsg)
 		}
 	},
 )
@@ -50,8 +52,9 @@ export const postSignUp = createAsyncThunk(
 			return data.data.content
 		} catch (error) {
 			console.log('error:', error)
-			message.error('Create Account Fail')
-			return rejectWithValue(error?.response?.data?.message || 'Create Account Fail')
+			const errorMsg = error?.response?.data || error?.response?.data?.message || 'Create Account Fail'
+			message.error(typeof errorMsg === 'string' ? errorMsg : 'Create Account Fail')
+			return rejectWithValue(errorMsg)
 		}
 	},
 )

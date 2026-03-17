@@ -209,53 +209,59 @@ const StockAdjustment = () => {
 
 			{showProductList && (
 				<table style={tableStyle}>
-						<thead>
-							<tr>
-								<th style={{ ...thStyle, width: '8%' }}></th>
-								<th style={{ ...thStyle, ...innerBorderStyle, width: '18%' }}>
-									Name
-								</th>
-								<th style={{ ...thStyle, ...innerBorderStyle, width: '20%' }}>
-									Quantity in Warehouse
-								</th>
-								<th style={{ ...thStyle, ...innerBorderStyle, width: '18%' }}>
-									Quantity Displayed
-								</th>
-								<th style={{ ...thStyle, ...innerBorderStyle, width: '12%' }}>
-									Add to shelf
-								</th>
-							</tr>
-						</thead>
+					<thead>
+						<tr>
+							<th style={{ ...thStyle, width: '8%' }}></th>
+							<th style={{ ...thStyle, ...innerBorderStyle, width: '15%' }}>
+								Name
+							</th>
+							<th style={{ ...thStyle, ...innerBorderStyle, width: '15%' }}>
+								Condition
+							</th>
+							<th style={{ ...thStyle, ...innerBorderStyle, width: '20%' }}>
+								Quantity in Warehouse
+							</th>
+							<th style={{ ...thStyle, ...innerBorderStyle, width: '18%' }}>
+								Quantity Displayed
+							</th>
+							<th style={{ ...thStyle, ...innerBorderStyle, width: '12%' }}>
+								Add to shelf
+							</th>
+						</tr>
+					</thead>
 
-						<tbody>
-							{products.map((product) => (
-								<tr key={product.product_id}>
-									<td style={tdStyle}>
-										<img
-											src={product.product_img}
-											style={{ maxWidth: '100%' }}
-											alt={product.product_name}
-										/>
-									</td>
-									<td style={{ ...tdStyle, ...innerBorderStyle }}>
-										{product.product_name}
-									</td>
-									<td style={{ ...tdStyle, ...innerBorderStyle }}>
-										{product.warehouse_products[0]?.quantity}
-									</td>
-									<td style={{ ...tdStyle, ...innerBorderStyle }}>
-										{product.shelf_products[0]?.quantity}
-									</td>
-									<td style={{ ...tdStyle, ...innerBorderStyle }}>
-										<AddToShelf
-											productId={product.product_id}
-											quantity={shelfQuantities[product.product_id] || 0}
-											onQuantityChange={handleQuantityChange}
-										/>
-									</td>
-								</tr>
-							))}
-						</tbody>
+					<tbody>
+						{products.map((product) => (
+							<tr key={product.product_id}>
+								<td style={tdStyle}>
+									<img
+										src={product.product_img}
+										style={{ maxWidth: '100%' }}
+										alt={product.product_name}
+									/>
+								</td>
+								<td style={{ ...tdStyle, ...innerBorderStyle }}>
+									{product.product_name}
+								</td>
+								<td style={{ ...tdStyle, ...innerBorderStyle }}>
+									{product.product_condition || 'N/A'}
+								</td>
+								<td style={{ ...tdStyle, ...innerBorderStyle }}>
+									{product.warehouse_products[0]?.quantity}
+								</td>
+								<td style={{ ...tdStyle, ...innerBorderStyle }}>
+									{product.shelf_products[0]?.quantity}
+								</td>
+								<td style={{ ...tdStyle, ...innerBorderStyle }}>
+									<AddToShelf
+										productId={product.product_id}
+										quantity={shelfQuantities[product.product_id] || 0}
+										onQuantityChange={handleQuantityChange}
+									/>
+								</td>
+							</tr>
+						))}
+					</tbody>
 				</table>
 			)}
 		</div>

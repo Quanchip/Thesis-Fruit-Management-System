@@ -64,8 +64,8 @@ const ReviewBerries = () => {
 
 	const filteredProducts = selectedCondition
 		? products.filter(
-				(product) => product.product_condition === selectedCondition,
-			)
+			(product) => product.product_condition === selectedCondition,
+		)
 		: products
 
 	const getConditionWord = (condition) => {
@@ -219,7 +219,7 @@ const ReviewBerries = () => {
 										)}
 										{getConditionWord(product.product_condition) && (
 											<span
-												className="mr-2"
+												className="mr-6"
 												style={{
 													color: getProductConditionColor(
 														product.product_condition,
@@ -231,6 +231,26 @@ const ReviewBerries = () => {
 												{getConditionWord(product.product_condition)}
 											</span>
 										)}
+										<span
+											className="mr-2"
+											style={{
+												color: '#485935',
+												fontSize: '18px',
+												fontWeight: '700',
+											}}
+										>
+											On shelf:
+										</span>
+										<span
+											className="mr-2"
+											style={{
+												color: '#485935',
+												fontSize: '18px',
+												fontWeight: '700',
+											}}
+										>
+											{product.shelf_products && product.shelf_products[0] ? product.shelf_products[0].quantity : 0} kg
+										</span>
 									</div>
 								</div>
 								<div>

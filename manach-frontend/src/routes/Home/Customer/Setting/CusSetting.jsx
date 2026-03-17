@@ -11,10 +11,19 @@ const CusSetting = () => {
 		dispatch(getInfor(userId))
 	}, [])
 
-	const [name, setName] = useState(inforUser?.full_name)
-	const [phone, setPhone] = useState(inforUser?.email)
-	const [email, setEmail] = useState(inforUser?.phone)
-	const [bank, setBank] = useState(inforUser?.bank_account)
+	const [name, setName] = useState(inforUser?.full_name || '')
+	const [phone, setPhone] = useState(inforUser?.phone || '')
+	const [email, setEmail] = useState(inforUser?.email || '')
+	const [bank, setBank] = useState(inforUser?.bank_account || '')
+
+	useEffect(() => {
+		if (inforUser) {
+			setName(inforUser.full_name || '')
+			setPhone(inforUser.phone || '')
+			setEmail(inforUser.email || '')
+			setBank(inforUser.bank_account || '')
+		}
+	}, [inforUser])
 
 	const dispatchDetail = () => {
 		const newInfor = {
@@ -172,8 +181,9 @@ const CusSetting = () => {
 									<div className="text-offwhite">Full name</div>
 									<input
 										type="text"
-										placeholder={`${inforUser?.full_name}`}
+										placeholder={`${inforUser?.full_name || ''}`}
 										className="input input-bordered input-md bg-white w-full max-w-xs"
+										value={name}
 										onChange={(e) => {
 											setName(e.target.value)
 										}}
@@ -184,8 +194,9 @@ const CusSetting = () => {
 									<div className="text-offwhite">Phone</div>
 									<input
 										type="text"
-										placeholder={`${inforUser?.phone}`}
+										placeholder={`${inforUser?.phone || ''}`}
 										className="input input-bordered input-md bg-white w-full max-w-xs"
+										value={phone}
 										onChange={(e) => {
 											setPhone(e.target.value)
 										}}
@@ -198,8 +209,9 @@ const CusSetting = () => {
 									<div className="text-offwhite">Email</div>
 									<input
 										type="text"
-										placeholder={`${inforUser?.email}`}
+										placeholder={`${inforUser?.email || ''}`}
 										className="input input-bordered input-md bg-white w-full max-w-xs"
+										value={email}
 										onChange={(e) => {
 											setEmail(e.target.value)
 										}}
@@ -210,8 +222,9 @@ const CusSetting = () => {
 									<div className="text-offwhite">Bank Account</div>
 									<input
 										type="text"
-										placeholder={`${inforUser?.bank_account}`}
+										placeholder={`${inforUser?.bank_account || ''}`}
 										className="input input-bordered input-md bg-white w-full max-w-xs"
+										value={bank}
 										onChange={(e) => {
 											setBank(e.target.value)
 										}}

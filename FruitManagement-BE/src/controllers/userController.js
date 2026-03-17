@@ -72,10 +72,10 @@ export const checkOut = async (req, res) => {
   try {
     let { user_id } = req.params;
 
-    const products = req.body.products;
+    const { products, delivery_name, delivery_phone, delivery_address } = req.body;
 
     // If the cart is empty, send a response indicating that the cart is empty
-    if (products.length === 0) {
+    if (!products || products.length === 0) {
       responseData(res, "Cart is empty", "", 400);
       return; // Exit the function early
     }
@@ -83,10 +83,14 @@ export const checkOut = async (req, res) => {
     // Create a new order record in the orders table
     const newOrder = await model.orders.create({
       user_id,
+      delivery_name: delivery_name || null,
+      delivery_phone: delivery_phone || null,
+      delivery_address: delivery_address || null,
     });
 
     let total_price = 0;
     let order_quantity = 0;
+    const productDetails = [];
 
     for (const product of products) {
       const { product_id, quantity } = product;
@@ -110,10 +114,10 @@ export const checkOut = async (req, res) => {
       await shelfProduct.update({ quantity: shelfProduct.quantity - quantity });
 
       // Find the product details
-      const productDetails = await model.products.findByPk(product_id);
+      const productInfo = await model.products.findByPk(product_id);
 
       // Calculate the subtotal for this product
-      const subtotal = productDetails.selling_price * quantity;
+      const subtotal = productInfo.selling_price * quantity;
 
       // Add the subtotal to the total price
       total_price += subtotal;
@@ -127,13 +131,39 @@ export const checkOut = async (req, res) => {
         order_product_quantity: quantity,
         subtotal,
       });
+
+      productDetails.push({
+        product_id,
+        product_name: productInfo.product_name,
+        quantity,
+        subtotal,
+      });
     }
 
-    // Update the order_id in order_products with the ID of the newly created order
+    // Update the order with totals
     await model.orders.update(
       { total_price: total_price, order_quantity: order_quantity },
       { where: { order_id: newOrder.order_id } }
     );
+
+    // Send confirmation email
+    try {
+      const user = await model.users.findByPk(user_id);
+      if (user && user.email) {
+        const { sendOrderConfirmation } = await import("../services/emailService.js");
+        await sendOrderConfirmation(user.email, {
+          orderId: newOrder.order_id,
+          deliveryName: delivery_name || user.full_name || "Customer",
+          deliveryPhone: delivery_phone || user.phone || "",
+          deliveryAddress: delivery_address || "",
+          products: productDetails,
+          totalPrice: total_price,
+        });
+      }
+    } catch (emailError) {
+      console.error("Email send failed (non-blocking):", emailError.message);
+    }
+
     responseData(res, "Checkout successful", newOrder, 200);
   } catch {
     responseData(res, "Error ...", "", 500);
