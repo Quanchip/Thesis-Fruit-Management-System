@@ -79,6 +79,7 @@ import storeRoutes from "./storeRoutes.js";
 import warehouseRoutes from "./warehouseRoutes.js";
 import dashboardRoutes from "./dashboardRoutes.js";
 import userRoutes from "./userRoutes.js";
+import chatRoutes from "./chatRoutes.js";
 
 const rootRoute = express.Router();
 
@@ -91,5 +92,7 @@ rootRoute.use("/store", storeRoutes);
 rootRoute.use("/warehouse", warehouseRoutes);
 
 rootRoute.use("/dashboard", dashboardRoutes);
+
+rootRoute.use("/chat", chatRoutes);
 
 export default rootRoute;
