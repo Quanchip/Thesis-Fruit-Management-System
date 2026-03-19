@@ -156,14 +156,9 @@ const AdminChat = () => {
 
 	const handleSelectChat = (conv) => {
 		setActiveChat(conv)
-		// Clear unread for this conversation
+		// Clear unread for this conversation locally
 		dispatch(clearUnread(conv.user_id))
-		// Mark as read on server
-		axios
-			.get(
-				`http://localhost:8080/chat/history/${conv.user_id}?currentUserId=${userId}`,
-			)
-			.catch(() => {})
+		// The API call to fetch admin-history will now automatically mark it as read in the DB.
 	}
 
 	const handleSend = () => {

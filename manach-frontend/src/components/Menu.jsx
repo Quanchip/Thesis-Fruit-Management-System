@@ -7,6 +7,7 @@ import { logOutAction } from '../redux/userReducer/userReducer'
 import { getInfor } from '../redux/userReducer/userThunk'
 import { setUnreadCounts } from '../redux/chatReducer/chatReducer'
 import axios from 'axios'
+import { Modal } from 'antd'
 
 // NavItem
 const NavItemCustomer = [
@@ -123,10 +124,21 @@ const Menu = () => {
 		}
 	}, [roleName, userId, dispatch])
 
-	const handleLogoutClick = () => {
-		// Navigate to "About Us" page after logout
-		dispatch(logOutAction())
-		navigate('/about-us')
+	const handleLogoutClick = (e) => {
+		e.preventDefault()
+		Modal.confirm({
+			title: 'Confirm Logout',
+			content: 'Are you sure you want to log out?',
+			centered: true,
+			okText: 'Yes, log out',
+			cancelText: 'Cancel',
+			okButtonProps: { style: { backgroundColor: '#485935', borderColor: '#485935' } },
+			onOk() {
+				// Navigate to "About Us" page after logout
+				dispatch(logOutAction())
+				navigate('/')
+			},
+		})
 	}
 
 	return (

@@ -166,7 +166,7 @@ export const saveMessage = async (senderId, receiverId, message) => {
     return newMessage;
 };
 
-// Mark messages as read
+// Mark messages as read (for customer viewing an admin's messages)
 export const markAsRead = async (senderId, receiverId) => {
     await model.chat_messages.update(
         { is_read: true },
@@ -174,6 +174,21 @@ export const markAsRead = async (senderId, receiverId) => {
             where: {
                 sender_id: senderId,
                 receiver_id: receiverId,
+                is_read: false,
+            },
+        }
+    );
+};
+
+// Mark messages as read (for admin viewing a customer's messages)
+export const markAsReadForAdmin = async (customerId) => {
+    const adminIds = await getAdminUserIds();
+    await model.chat_messages.update(
+        { is_read: true },
+        {
+            where: {
+                sender_id: customerId,
+                receiver_id: { [Op.in]: adminIds },
                 is_read: false,
             },
         }

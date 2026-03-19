@@ -4,6 +4,7 @@ import {
     getConversations,
     getAdminChatHistory,
     markAsRead,
+    markAsReadForAdmin,
     getAdminUser,
 } from "../services/chatService.js";
 
@@ -38,6 +39,10 @@ export const getAdminChatHistoryController = async (req, res) => {
         const { customerId } = req.params;
 
         const messages = await getAdminChatHistory(parseInt(customerId));
+
+        // Mark messages as read
+        await markAsReadForAdmin(parseInt(customerId));
+
         responseData(res, "Success", messages, 200);
     } catch (error) {
         console.error("Error getting admin chat history:", error);
