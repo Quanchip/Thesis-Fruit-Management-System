@@ -38,6 +38,8 @@ const Dashboard = () => {
 						cost={data?.cost}
 						orderVolume={data?.orderVolume}
 						productionVolume={data?.productionVolume}
+						weeklyRevenue={data?.weeklyRevenue}
+						weeklyOrders={data?.weeklyOrders}
 					/>
 				</div>
 				<div className="w-[20%] space-y-4">

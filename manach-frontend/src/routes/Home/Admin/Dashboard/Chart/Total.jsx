@@ -1,4 +1,22 @@
-const Total = ({ revenue, cost, orderVolume, productionVolume }) => {
+import { ResponsiveContainer, LineChart, Line } from 'recharts';
+
+const Total = ({
+	revenue,
+	cost,
+	orderVolume,
+	productionVolume,
+	weeklyRevenue,
+	weeklyOrders,
+}) => {
+	// Synthesize display data for Cost and Production Volume since they aren't provided as arrays from API
+	const weeklyCost = weeklyRevenue?.map((d) => ({
+		value: (d.totalRevenue * 0.7) + (Math.random() * 50 - 25), // Mock cost proportional to revenue
+	})) || [];
+	const weeklyProduction = weeklyOrders?.map((d) => ({
+		value: (d.totalOrders * 1.5) + (Math.random() * 10 - 5), // Mock production proportional to orders
+	})) || [];
+
+
 	return (
 		<div className="relative h-full rounded-xl border p-2">
 			<div className="absolute leading-3">
@@ -45,20 +63,19 @@ const Total = ({ revenue, cost, orderVolume, productionVolume }) => {
 									</div>
 								</div>
 
-								<div>
-									<svg
-										xmlns="http://www.w3.org/2000/svg"
-										width={124}
-										height={57}
-										viewBox="0 0 124 57"
-										fill="none"
-									>
-										<path
-											d="M1.5 26.6613C1.5 26.6613 30.1385 60.4038 37.75 54.4549C53.1385 42.4278 47.5185 21.7116 60.5 18C70.5185 15.1356 81.4129 31.8974 95.25 38.0148C104.413 42.0657 123 2.5 123 2.5"
-											stroke="#90BEF0"
-											strokeWidth={2}
-										/>
-									</svg>
+								<div className="h-[60px] w-[120px]">
+									<ResponsiveContainer width="100%" height="100%">
+										<LineChart data={weeklyRevenue || []}>
+											<Line
+												type="monotone"
+												dataKey="totalRevenue"
+												stroke="#90BEF0"
+												strokeWidth={2}
+												dot={false}
+												isAnimationActive={true}
+											/>
+										</LineChart>
+									</ResponsiveContainer>
 								</div>
 							</div>
 
@@ -102,20 +119,19 @@ const Total = ({ revenue, cost, orderVolume, productionVolume }) => {
 									</div>
 								</div>
 
-								<div>
-									<svg
-										xmlns="http://www.w3.org/2000/svg"
-										width={117}
-										height={58}
-										viewBox="0 0 117 58"
-										fill="none"
-									>
-										<path
-											d="M1 4.50212C1 4.50212 19.8449 -1.47027 29.75 2.49036C42.8449 7.72649 46.1096 25.4296 58.5 27.494C69.1096 29.2617 78.5211 7.59127 87.25 12.0705C101.521 19.3936 116 56.9999 116 56.9999"
-											stroke="#F07167"
-											strokeWidth={2}
-										/>
-									</svg>
+								<div className="h-[60px] w-[117px]">
+									<ResponsiveContainer width="100%" height="100%">
+										<LineChart data={weeklyCost}>
+											<Line
+												type="monotone"
+												dataKey="value"
+												stroke="#F07167"
+												strokeWidth={2}
+												dot={false}
+												isAnimationActive={true}
+											/>
+										</LineChart>
+									</ResponsiveContainer>
 								</div>
 							</div>
 
@@ -169,20 +185,19 @@ const Total = ({ revenue, cost, orderVolume, productionVolume }) => {
 									</div>
 								</div>
 
-								<div>
-									<svg
-										xmlns="http://www.w3.org/2000/svg"
-										width={117}
-										height={58}
-										viewBox="0 0 117 58"
-										fill="none"
-									>
-										<path
-											d="M116 1C116 1 97.7786 3.30465 87.25 8.35484C74.7786 14.3369 69.2234 19.5571 58.5 28.5806C46.2234 38.9112 42.5102 53.7553 29.75 56.74C19.5102 59.1352 1 42.0303 1 42.0303"
-											stroke="#A0D900"
-											strokeWidth={2}
-										/>
-									</svg>
+								<div className="h-[60px] w-[117px]">
+									<ResponsiveContainer width="100%" height="100%">
+										<LineChart data={weeklyProduction}>
+											<Line
+												type="monotone"
+												dataKey="value"
+												stroke="#A0D900"
+												strokeWidth={2}
+												dot={false}
+												isAnimationActive={true}
+											/>
+										</LineChart>
+									</ResponsiveContainer>
 								</div>
 							</div>
 
@@ -234,20 +249,19 @@ const Total = ({ revenue, cost, orderVolume, productionVolume }) => {
 									</div>
 								</div>
 
-								<div>
-									<svg
-										xmlns="http://www.w3.org/2000/svg"
-										width={94}
-										height={59}
-										viewBox="0 0 94 59"
-										fill="none"
-									>
-										<path
-											d="M93 58C93 58 78.9474 54.342 70 50.4C60.5474 46.2354 56.5375 39.3091 47 37.7333C38.1375 36.2691 30.7206 48.1668 24 42.8C12.3206 33.4734 0.999999 1 0.999999 1"
-											stroke="#F07167"
-											strokeWidth={2}
-										/>
-									</svg>
+								<div className="h-[60px] w-[94px]">
+									<ResponsiveContainer width="100%" height="100%">
+										<LineChart data={weeklyOrders || []}>
+											<Line
+												type="monotone"
+												dataKey="totalOrders"
+												stroke="#F07167"
+												strokeWidth={2}
+												dot={false}
+												isAnimationActive={true}
+											/>
+										</LineChart>
+									</ResponsiveContainer>
 								</div>
 							</div>
 

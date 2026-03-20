@@ -6,6 +6,7 @@ import Vector2 from '../../../../../assets/Vector2.svg'
 import Group3 from '../../../../../assets/Group3.svg'
 import Modal from 'react-modal'
 import { message } from 'antd'
+import LoadingButton from '../../../../../components/LoadingButton'
 
 Modal.setAppElement('#root')
 
@@ -15,6 +16,7 @@ const ReOrder = () => {
 	const [products, setProducts] = useState([])
 	const [selectedProduct, setSelectedProduct] = useState(null)
 	const [orderQuantity, setOrderQuantity] = useState('')
+	const [isOrderLoading, setIsOrderLoading] = useState(false)
 
 	const fetchProducts = () => {
 		fetch('http://localhost:8080/warehouse/reorder')
@@ -99,6 +101,7 @@ const ReOrder = () => {
 			quantity: parseInt(orderQuantity),
 		}
 
+		setIsOrderLoading(true)
 		fetch(`http://localhost:8080/warehouse/reorder/${selectedProduct.product.product_id}`, {
 			method: 'PUT',
 			headers: {
@@ -113,6 +116,7 @@ const ReOrder = () => {
 				fetchProducts() // Refresh the product list
 			})
 			.catch((error) => console.error('Error updating order:', error))
+			.finally(() => setIsOrderLoading(false))
 	}
 
 	return (
@@ -220,13 +224,14 @@ const ReOrder = () => {
 					value={orderQuantity}
 					onChange={handleOrderQuantityChange}
 				/>
-				<button
+				<LoadingButton
+					isLoading={isOrderLoading}
 					className="rounded-2xl border border-offwhite bg-offwhite px-4 py-3 text-[1rem] font-semibold text-green_dark1"
 					style={{ display: 'flex', marginLeft: 'auto', marginTop: '6%' }}
 					onClick={handleConfirmOrder}
 				>
 					Confirm order
-				</button>
+				</LoadingButton>
 				<div className="fixed left-[0rem] top-[21.5rem] w-[11rem]">
 					<img src={Group} alt="" />
 				</div>

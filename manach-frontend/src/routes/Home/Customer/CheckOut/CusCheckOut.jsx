@@ -4,10 +4,12 @@ import { message } from 'antd'
 import { useNavigate } from 'react-router-dom'
 import { useDispatch, useSelector } from 'react-redux'
 import { postOrder } from '../../../../redux/cartReducer/cartThunk'
+import LoadingButton from '../../../../components/LoadingButton'
 
 const CusCheckOut = () => {
 	const [list, setList] = useState(cartLocal.get('cart') || [])
 	const [isSuccess, setIsSuccess] = useState(false)
+	const [isLoading, setIsLoading] = useState(false)
 	const [deliveryInfo, setDeliveryInfo] = useState({
 		delivery_name: '',
 		delivery_phone: '',
@@ -164,6 +166,7 @@ const CusCheckOut = () => {
 		}
 
 		try {
+			setIsLoading(true)
 			// dispatch returns a promise when using createAsyncThunk + rejectWithValue
 			const resultAction = await dispatch(postOrder(order)).unwrap()
 			// If we reach here, unwrap succeeded
@@ -172,6 +175,8 @@ const CusCheckOut = () => {
 		} catch (err) {
 			// Error is already handled/messaged in thunk, but we can catch here if needed
 			console.log("Order failed", err)
+		} finally {
+			setIsLoading(false)
 		}
 	}
 
@@ -198,7 +203,7 @@ const CusCheckOut = () => {
 						</button>
 						<button
 							onClick={() => navigate('/customer/order')}
-							className="rounded-xl bg-orange px-6 py-3 text-offwhite font-semibold shadow-md hover:bg-orange/90 transition-colors"
+							className="rounded-xl border-2 bg-orange px-6 py-3 text-green_dark1 font-semibold shadow-md hover:bg-orange/90 hover:text-offwhite transition-colors"
 						>
 							View Orders
 						</button>
@@ -316,12 +321,13 @@ const CusCheckOut = () => {
 							<span className="text-orange">${calTotalCost().toFixed(2)}</span>
 						</div>
 
-						<button
+						<LoadingButton
+							isLoading={isLoading}
 							onClick={orderProduct}
 							className="w-full rounded-xl bg-green_dark1 py-3.5 text-offwhite text-[1.125rem] font-bold shadow-md hover:bg-green_dark1/90 transition-all active:scale-[0.98]"
 						>
 							Confirm Order
-						</button>
+						</LoadingButton>
 					</div>
 
 				</div>
