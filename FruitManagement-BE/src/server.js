@@ -70,14 +70,17 @@ io.on("connection", (socket) => {
         sender_name: senderUser?.full_name || "Unknown",
       };
 
-      // Send to receiver's room
-      io.to(`user_${receiverId}`).emit("receive_message", messageData);
+      // Find if sender is admin or customer
+      const isAdmin = await model.users.findOne({ where: { user_id: senderId, role_id: 1 } });
+      
+      // Emit properly: receiver, admin_room, and ONLY to sender if they aren't already an admin
+      let emitChain = io.to(`user_${receiverId}`).to("admin_room");
+      if (!isAdmin) {
+          emitChain = emitChain.to(`user_${senderId}`);
+      }
+      
+      emitChain.emit("receive_message", messageData);
 
-      // Also send to admin_room so any logged-in admin sees it
-      io.to("admin_room").emit("receive_message", messageData);
-
-      // Send back to sender for confirmation
-      io.to(`user_${senderId}`).emit("receive_message", messageData);
     } catch (error) {
       console.error("Error saving message:", error);
       socket.emit("message_error", { error: "Failed to send message" });

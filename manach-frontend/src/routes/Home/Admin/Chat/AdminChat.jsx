@@ -50,7 +50,8 @@ const AdminChat = () => {
 				if (String(currentActive.user_id) === otherUserForMsg) {
 					setMessages((prev) => {
 						const exists = prev.find(
-							(m) => m.message_id === data.message_id,
+							(m) => String(m.message_id) === String(data.message_id) || 
+								   (m.message === data.message && m.created_at === data.created_at)
 						)
 						if (exists) return prev
 						return [...prev, data]

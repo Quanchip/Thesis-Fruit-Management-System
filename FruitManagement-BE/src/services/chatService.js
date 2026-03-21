@@ -38,11 +38,20 @@ const getAdminUserIds = async () => {
 
 // Get chat history between two users
 export const getChatHistory = async (userId1, userId2) => {
+    const adminIds = await getAdminUserIds();
+    
+    // If either user is an admin, expand their ID to include all admins so multiple admins can reply to a user seamlessly
+    const u1IsAdmin = adminIds.includes(userId1);
+    const u2IsAdmin = adminIds.includes(userId2);
+    
+    const target1 = u1IsAdmin ? { [Op.in]: adminIds } : userId1;
+    const target2 = u2IsAdmin ? { [Op.in]: adminIds } : userId2;
+
     const messages = await model.chat_messages.findAll({
         where: {
             [Op.or]: [
-                { sender_id: userId1, receiver_id: userId2 },
-                { sender_id: userId2, receiver_id: userId1 },
+                { sender_id: target1, receiver_id: target2 },
+                { sender_id: target2, receiver_id: target1 },
             ],
         },
         order: [["created_at", "ASC"]],

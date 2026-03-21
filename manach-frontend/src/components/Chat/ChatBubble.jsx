@@ -9,7 +9,9 @@ const ChatBubble = () => {
 
     return (
         <>
-            {isOpen && <ChatBox />}
+            <div style={{ display: isOpen ? 'block' : 'none' }}>
+                <ChatBox />
+            </div>
             <button
                 onClick={() => dispatch(toggleChat())}
                 style={{

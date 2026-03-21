@@ -24,6 +24,9 @@ const chatReducer = createSlice({
 			)
 			if (!exists) {
 				state.messages.push(action.payload)
+				if (!state.isOpen) {
+					state.unreadCount += 1
+				}
 			}
 		},
 		setConversations: (state, action) => {
@@ -51,9 +54,13 @@ const chatReducer = createSlice({
 		},
 		toggleChat: (state) => {
 			state.isOpen = !state.isOpen
+			if (state.isOpen) {
+				state.unreadCount = 0
+			}
 		},
 		openChat: (state) => {
 			state.isOpen = true
+			state.unreadCount = 0
 		},
 		closeChat: (state) => {
 			state.isOpen = false
