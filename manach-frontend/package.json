@@ -16,6 +16,7 @@
 		"antd": "^5.17.3",
 		"axios": "^1.6.7",
 		"chart.js": "^4.4.3",
+		"date-fns": "^4.1.0",
 		"dotenv": "^16.4.5",
 		"formik": "^2.4.6",
 		"lottie-react": "^2.4.0",

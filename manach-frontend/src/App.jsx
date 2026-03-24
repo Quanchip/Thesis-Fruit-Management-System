@@ -37,6 +37,7 @@ import ASetting from './routes/Home/Admin/Setting/ASetting'
 import Warehouse from './routes/Home/Admin/Warehouse/Warehouse'
 import AStore from './routes/Home/Admin/Store/AStore'
 import AdminChat from './routes/Home/Admin/Chat/AdminChat'
+import UserManagement from './routes/Home/Admin/UserManagement/UserManagement'
 import ProtectedRoute from './components/ProtectedRoute'
 
 // import Loading from './components/Loading'
@@ -71,6 +72,7 @@ function App() {
 							<Route path="warehouse" element={<Warehouse />} />
 							<Route path="dashboard" element={<Dashboard />} />
 							<Route path="chat" element={<AdminChat />} />
+							<Route path="users" element={<UserManagement />} />
 							<Route path="setting" element={<ASetting />} />
 							<Route path="logout" element={<></>} />
 						</Route>

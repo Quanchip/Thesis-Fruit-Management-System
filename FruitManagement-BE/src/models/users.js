@@ -46,6 +46,11 @@ export default class users extends Model {
       type: DataTypes.BOOLEAN,
       allowNull: false,
       defaultValue: false
+    },
+    is_active: {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      defaultValue: true
     }
   }, {
     sequelize,

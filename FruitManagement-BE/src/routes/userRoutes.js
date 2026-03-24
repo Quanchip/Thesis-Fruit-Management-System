@@ -4,6 +4,11 @@ import {
   getOrder,
   getProfile,
   updateProfile,
+  getAllUsers,
+  enableUser,
+  disableUser,
+  deleteUser,
+  adminUpdateUser
 } from "../controllers/userController.js";
 
 const userRoutes = express.Router();
@@ -168,5 +173,50 @@ userRoutes.post("/:user_id/checkout", checkOut);
  *         description: User not found or no transactions
  */
 userRoutes.get("/:user_id/order", getOrder);
+
+/**
+ * @swagger
+ * /user:
+ *   get:
+ *     summary: Get all users (Admin only)
+ *     tags: [User]
+ */
+userRoutes.get("/", getAllUsers);
+
+/**
+ * @swagger
+ * /user/{user_id}/enable:
+ *   put:
+ *     summary: Enable a user account
+ *     tags: [User]
+ */
+userRoutes.put("/:user_id/enable", enableUser);
+
+/**
+ * @swagger
+ * /user/{user_id}/disable:
+ *   put:
+ *     summary: Disable a user account
+ *     tags: [User]
+ */
+userRoutes.put("/:user_id/disable", disableUser);
+
+/**
+ * @swagger
+ * /user/{user_id}:
+ *   delete:
+ *     summary: Delete a user account permanently (Admin only, cannot delete Admins)
+ *     tags: [User]
+ */
+userRoutes.delete("/:user_id", deleteUser);
+
+/**
+ * @swagger
+ * /user/{user_id}/admin-edit:
+ *   put:
+ *     summary: Update any user detail exhaustively (Admin only)
+ *     tags: [User]
+ */
+userRoutes.put("/:user_id/admin-edit", adminUpdateUser);
 
 export default userRoutes;

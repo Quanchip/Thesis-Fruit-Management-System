@@ -193,3 +193,112 @@ export const getOrder = async (req, res) => {
   //   responseData(res, "Error ...", "", 500);
   // }
 };
+
+// Get all users (Admin)
+export const getAllUsers = async (req, res) => {
+  try {
+    const { search, role } = req.query;
+    let whereCondition = {};
+
+    if (search) {
+      whereCondition[Op.or] = [
+        { full_name: { [Op.like]: `%${search}%` } },
+        { email: { [Op.like]: `%${search}%` } },
+      ];
+    }
+    
+    if (role && role !== 'all') {
+      whereCondition.role_id = role === 'admin' ? 1 : 2;
+    }
+
+    let data = await model.users.findAll({
+      where: whereCondition,
+      include: ["role"],
+      order: [["user_id", "DESC"]]
+    });
+    responseData(res, "Success", data, 200);
+  } catch (error) {
+    responseData(res, "Error fetching users", "", 500);
+  }
+};
+
+// Enable User (Admin)
+export const enableUser = async (req, res) => {
+  try {
+    let { user_id } = req.params;
+    await model.users.update({ is_active: true }, { where: { user_id } });
+    responseData(res, "User enabled successfully", "", 200);
+  } catch {
+    responseData(res, "Error enabling user", "", 500);
+  }
+};
+
+// Disable User (Admin)
+export const disableUser = async (req, res) => {
+  try {
+    let { user_id } = req.params;
+    const user = await model.users.findOne({ where: { user_id } });
+    if (user && user.role_id === 1) {
+      return responseData(res, "Cannot disable an admin", "", 403);
+    }
+    await model.users.update({ is_active: false }, { where: { user_id } });
+    responseData(res, "User disabled successfully", "", 200);
+  } catch {
+    responseData(res, "Error disabling user", "", 500);
+  }
+};
+
+// Delete User (Admin)
+export const deleteUser = async (req, res) => {
+  try {
+    let { user_id } = req.params;
+    const user = await model.users.findOne({ where: { user_id } });
+    if (!user) return responseData(res, "User not found", "", 404);
+    if (user.role_id === 1) {
+      return responseData(res, "Cannot delete an admin user", "", 403);
+    }
+    await model.users.destroy({ where: { user_id } });
+    responseData(res, "User deleted successfully", "", 200);
+  } catch(err) {
+    if (err.name === 'SequelizeForeignKeyConstraintError') {
+      return responseData(res, "Cannot delete user because they have associated orders or chats.", "", 400);
+    }
+    responseData(res, "Error deleting user", "", 500);
+  }
+};
+
+// Admin comprehensive user update
+export const adminUpdateUser = async (req, res) => {
+  try {
+    let { user_id } = req.params;
+    let { user_name, full_name, phone, email, bank_account, role_id, is_active, is_email_verified } = req.body;
+
+    const user = await model.users.findOne({ where: { user_id } });
+    if (!user) {
+      return responseData(res, "User not found", "", 404);
+    }
+    
+    // Admins cannot change role or status of another Admin (to prevent locking out the system)
+    if (user.role_id === 1 && (role_id === 2 || is_active === false)) {
+      return responseData(res, "Cannot demote or disable an admin.", "", 403);
+    }
+
+    await model.users.update({
+      user_name: user_name ?? user.user_name,
+      full_name: full_name ?? user.full_name,
+      phone: phone ?? user.phone,
+      email: email ?? user.email,
+      bank_account: bank_account ?? user.bank_account,
+      role_id: role_id ?? user.role_id,
+      is_active: is_active ?? user.is_active,
+      is_email_verified: is_email_verified ?? user.is_email_verified
+    }, {
+      where: { user_id }
+    });
+
+    const updatedUser = await model.users.findOne({ where: { user_id } });
+    responseData(res, "User updated successfully (Admin override)", updatedUser, 200);
+  } catch (error) {
+    responseData(res, "Error updating user", "", 500);
+  }
+};

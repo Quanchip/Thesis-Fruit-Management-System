@@ -68,6 +68,10 @@ export const login = async (req, res) => {
       return responseData(res, "User doesn't exist", "", 400);
     }
 
+    if (!checkUser.is_active) {
+      return responseData(res, "Account disabled. Please contact admin to enable your account.", "", 403);
+    }
+
     if (requireVerifiedEmail && !checkUser.is_email_verified) {
       return responseData(res, "Email is not verified", "", 403);
     }

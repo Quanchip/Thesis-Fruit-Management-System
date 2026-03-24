@@ -1,5 +1,5 @@
 import { createAsyncThunk } from '@reduxjs/toolkit'
-import { message } from 'antd'
+import { message, Modal } from 'antd'
 import { userService } from '../../service/userService'
 
 export const userThunk = createAsyncThunk(
@@ -11,8 +11,19 @@ export const userThunk = createAsyncThunk(
 
 			return data.data.content
 		} catch (error) {
-			message.error('Login fail')
-			return rejectWithValue(error?.response?.data?.message || 'Login fail')
+			const errorMsg = error?.response?.data?.message || 'Login fail';
+
+			if (error?.response?.status === 403 && errorMsg.includes('disabled')) {
+				Modal.error({
+					title: 'Account Disabled',
+					content: 'Your account has been disabled. Please contact an administrator to reactivate your access. Email: admin@manach.com',
+					okButtonProps: { style: { backgroundColor: '#485935', borderColor: '#485935', color: 'white' } }
+				});
+			} else {
+				message.error(errorMsg);
+			}
+
+			return rejectWithValue(errorMsg)
 		}
 	},
 )

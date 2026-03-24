@@ -69,6 +69,11 @@ const NavItemAdminn = [
 		icon: 'comments',
 	},
 	{
+		name: 'Users',
+		link: '/admin/users',
+		icon: 'users',
+	},
+	{
 		name: 'Setting',
 		link: '/admin/setting',
 		icon: 'cog',
