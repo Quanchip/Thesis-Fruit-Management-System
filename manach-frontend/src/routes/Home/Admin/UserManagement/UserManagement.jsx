@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Table, Input, Select, Button, Modal, Tag, Space, message, Switch, Form } from 'antd';
+import { Table, Input, Select, Button, Modal, Tag, Space, message, Switch, Form, ConfigProvider } from 'antd';
 import axios from 'axios';
 import { useSelector } from 'react-redux';
 import { format } from 'date-fns';
@@ -165,7 +165,7 @@ const UserManagement = () => {
       title: 'Role',
       key: 'role',
       render: (_, record) => (
-        <Tag color={record.role_id === 1 ? 'gold' : 'blue'}>
+        <Tag color={record.role_id === 1 ? '#FFD600' : '#485935'} style={{ color: record.role_id === 1 ? '#2C3721' : '#ffffff', fontWeight: 'bold' }}>
           {record.role_id === 1 ? 'ADMIN' : 'USER'}
         </Tag>
       ),
@@ -174,7 +174,7 @@ const UserManagement = () => {
       title: 'Status',
       key: 'status',
       render: (_, record) => (
-        <Tag color={record.is_active ? 'green' : 'red'}>
+        <Tag color={record.is_active ? '#A0D900' : '#F07167'} style={{ color: record.is_active ? '#2C3721' : '#ffffff', fontWeight: 'bold' }}>
           {record.is_active ? 'ACTIVE' : 'DISABLED'}
         </Tag>
       ),
@@ -192,29 +192,29 @@ const UserManagement = () => {
         <Space size="middle">
           <Button 
             size="small" 
+            style={{ backgroundColor: '#485935', color: '#ffffff', borderColor: '#485935' }}
             onClick={() => handleView(record)}
           >
             View
           </Button>
           <Button 
             size="small" 
+            style={{ backgroundColor: '#93A267', color: '#ffffff', borderColor: '#93A267' }}
             onClick={() => handleEditClick(record)}
           >
             Edit
           </Button>
           <Button 
-            type="primary" 
-            ghost 
             size="small"
-            style={{ color: '#485935', borderColor: '#485935' }}
+            style={{ backgroundColor: '#ffffff', borderColor: record.is_active ? '#F07167' : '#93A267', color: record.is_active ? '#F07167' : '#93A267' }}
             onClick={() => handleToggleStatus(record)}
             disabled={record.role_id === 1}
           >
             {record.is_active ? 'Disable' : 'Enable'}
           </Button>
           <Button 
-            danger 
             size="small" 
+            style={{ backgroundColor: '#F07167', color: '#ffffff', borderColor: '#F07167' }}
             onClick={() => handleDelete(record)}
             disabled={record.role_id === 1}
           >
@@ -226,32 +226,52 @@ const UserManagement = () => {
   ];
 
   return (
-    <div className="p-8 w-full min-h-screen" style={{ backgroundColor: '#F5F7F0' }}>
-      <div className="flex justify-between items-center mb-6">
-        <div>
-          <h1 className="text-3xl font-bold" style={{ color: '#485935' }}>User Management</h1>
-          <p className="text-gray-500 mt-1">Manage system accounts, access, and permissions.</p>
+    <ConfigProvider
+      theme={{
+        token: {
+          colorPrimary: '#485935', // green_dark1
+          colorInfo: '#93A267', // green
+          colorBgContainer: '#ffffff', // offwhite
+          colorText: '#2C3721', // green_dark2
+          colorError: '#F07167', // redpink_dark
+          colorSuccess: '#A0D900', // green_bright1
+          borderRadius: 8,
+        },
+        components: {
+          Table: {
+            headerBg: '#ECF5E1', // green_light3
+            headerColor: '#485935', // green_dark1
+            rowHoverBg: '#ECF5E1', // green_light3
+          },
+        },
+      }}
+    >
+      <div className="p-8 w-full min-h-screen bg-offwhite">
+        <div className="flex justify-between items-center mb-6">
+          <div>
+            <h1 className="text-[1.875rem] font-extrabold text-green_dark1">User Management</h1>
+            <p className="text-gray-500 mt-1">Manage system accounts, access, and permissions.</p>
+          </div>
         </div>
-      </div>
 
-      <div className="bg-white p-6 rounded-lg shadow-sm">
-        <div className="flex gap-4 mb-6">
-          <Search
-            placeholder="Search by name or email"
-            allowClear
-            onSearch={(val) => setSearchText(val)}
-            style={{ width: 300 }}
-          />
-          <Select
-            defaultValue="all"
-            style={{ width: 150 }}
-            onChange={(val) => setRoleFilter(val)}
-          >
-            <Option value="all">All Roles</Option>
-            <Option value="admin">Admins</Option>
-            <Option value="customer">Customers</Option>
-          </Select>
-        </div>
+        <div className="bg-white p-6 rounded-lg border border-green_light1 shadow-sm">
+          <div className="flex gap-4 mb-6">
+            <Search
+              placeholder="Search by name or email"
+              allowClear
+              onSearch={(val) => setSearchText(val)}
+              style={{ width: 300 }}
+            />
+            <Select
+              defaultValue="all"
+              style={{ width: 150 }}
+              onChange={(val) => setRoleFilter(val)}
+            >
+              <Option value="all">All Roles</Option>
+              <Option value="admin">Admins</Option>
+              <Option value="customer">Customers</Option>
+            </Select>
+          </div>
 
         <Table 
           columns={columns} 
@@ -366,7 +386,8 @@ const UserManagement = () => {
           </div>
         </div>
       </Modal>
-    </div>
+      </div>
+    </ConfigProvider>
   );
 };
 

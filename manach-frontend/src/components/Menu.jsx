@@ -1,13 +1,13 @@
-import React, { useEffect } from 'react'
-import { useState } from 'react'
+import React, { useEffect, useState, useRef } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import NeedHelps from './needHelps/needHelps'
 import { useDispatch, useSelector } from 'react-redux'
 import { logOutAction } from '../redux/userReducer/userReducer'
 import { getInfor } from '../redux/userReducer/userThunk'
-import { setUnreadCounts } from '../redux/chatReducer/chatReducer'
+import { setUnreadCounts, incrementUnread } from '../redux/chatReducer/chatReducer'
 import axios from 'axios'
 import { Modal } from 'antd'
+import { io } from 'socket.io-client'
 
 // NavItem
 const NavItemCustomer = [
@@ -95,6 +95,12 @@ const Menu = () => {
 	)
 	const { unreadCounts } = useSelector((state) => state.chatReducer)
 
+	// Persist the live URL path into a ref so the background Socket doesn't need to rebuild every navigation
+	const locationRef = useRef(location.pathname)
+	useEffect(() => {
+		locationRef.current = location.pathname
+	}, [location.pathname])
+
 	// Total unread across all conversations
 	const totalUnread = Object.values(unreadCounts || {}).reduce(
 		(sum, c) => sum + c,
@@ -126,6 +132,28 @@ const Menu = () => {
 					dispatch(setUnreadCounts(counts))
 				})
 				.catch(() => { })
+		}
+	}, [roleName, userId, dispatch])
+
+	// Background global websocket exclusively for bumping unread counts while navigating away from Chat
+	useEffect(() => {
+		if (roleName === 'admin' && userId) {
+			const menuSocket = io('http://localhost:8080')
+			menuSocket.emit('join_admin_room')
+
+			menuSocket.on('receive_message', (data) => {
+				// Only intercept and bump unread count if we are NOT actively on the chat page.
+				// (AdminChat component naturally handles its exact count internally when open)
+				if (locationRef.current !== '/admin/chat') {
+					if (String(data.sender_id) !== String(userId)) {
+						dispatch(incrementUnread(data.sender_id))
+					}
+				}
+			})
+
+			return () => {
+				menuSocket.disconnect()
+			}
 		}
 	}, [roleName, userId, dispatch])
 
