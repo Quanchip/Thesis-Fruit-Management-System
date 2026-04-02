@@ -72,7 +72,12 @@ export const checkOut = async (req, res) => {
   try {
     let { user_id } = req.params;
 
-    const { products, delivery_name, delivery_phone, delivery_address } = req.body;
+    const { products, delivery_name, delivery_phone, delivery_address, shippingMethod, shippingFee } = req.body;
+
+    const SHIPPING_FEES = { standard: 2, instant: 8 };
+    // Always recalculate shipping fee server-side — never trust the client value
+    const resolvedMethod = ['standard', 'instant'].includes(shippingMethod) ? shippingMethod : 'standard';
+    const resolvedFee = SHIPPING_FEES[resolvedMethod];
 
     // If the cart is empty, send a response indicating that the cart is empty
     if (!products || products.length === 0) {
@@ -86,6 +91,8 @@ export const checkOut = async (req, res) => {
       delivery_name: delivery_name || null,
       delivery_phone: delivery_phone || null,
       delivery_address: delivery_address || null,
+      shipping_method: resolvedMethod,
+      shipping_fee: resolvedFee,
     });
 
     let total_price = 0;
@@ -140,9 +147,9 @@ export const checkOut = async (req, res) => {
       });
     }
 
-    // Update the order with totals
+    // Update the order with totals (products subtotal + shipping fee)
     await model.orders.update(
-      { total_price: total_price, order_quantity: order_quantity },
+      { total_price: total_price + resolvedFee, order_quantity: order_quantity },
       { where: { order_id: newOrder.order_id } }
     );
 

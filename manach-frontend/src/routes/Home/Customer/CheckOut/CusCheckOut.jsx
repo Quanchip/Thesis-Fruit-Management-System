@@ -1,24 +1,87 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { cartLocal } from '../../../../service/cartLocal'
 import { message } from 'antd'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 import { useDispatch, useSelector } from 'react-redux'
 import { postOrder } from '../../../../redux/cartReducer/cartThunk'
-import LoadingButton from '../../../../components/LoadingButton'
+import axios from 'axios'
 
 const CusCheckOut = () => {
 	const [list, setList] = useState(cartLocal.get('cart') || [])
 	const [isSuccess, setIsSuccess] = useState(false)
 	const [isLoading, setIsLoading] = useState(false)
+	const [isPaypalLoading, setIsPaypalLoading] = useState(false)
+	const [isModalOpen, setIsModalOpen] = useState(false)
+
+	const SHIPPING_OPTIONS = [
+		{ id: 'standard', label: 'Standard Delivery', desc: '3–5 business days', fee: 2, icon: 'fa-truck' },
+		{ id: 'instant',  label: 'Instant Delivery',  desc: 'Same day delivery',  fee: 8, icon: 'fa-bolt' },
+	]
+	const [selectedShipping, setSelectedShipping] = useState('standard')
 	const [deliveryInfo, setDeliveryInfo] = useState({
 		delivery_name: '',
 		delivery_phone: '',
 		delivery_address: '',
 	})
+	// Keep a stable ref to deliveryInfo and list for the capture effect
+	const deliveryInfoRef = useRef(deliveryInfo)
+	const listRef = useRef(list)
+	useEffect(() => { deliveryInfoRef.current = deliveryInfo }, [deliveryInfo])
+	useEffect(() => { listRef.current = list }, [list])
 
 	const navigate = useNavigate()
+	const location = useLocation()
 	const dispatch = useDispatch()
 	const { userId, inforUser } = useSelector((state) => state.userReducer)
+
+	// Auto-capture PayPal order when returning from PayPal approval page
+	useEffect(() => {
+		const params = new URLSearchParams(location.search)
+		const paypalOrderId = params.get('paypalOrderId') || params.get('token') // PayPal uses 'token' as order ID param
+		const status = params.get('paypal')
+
+		if (status === 'cancelled') {
+			message.warning('PayPal payment was cancelled.')
+			navigate('/customer/check-out', { replace: true })
+			return
+		}
+
+		if (paypalOrderId) {
+			// Retrieve cart & delivery info from sessionStorage (set before redirect)
+			const savedCart = JSON.parse(sessionStorage.getItem('paypal_cart') || '[]')
+			const savedDelivery = JSON.parse(sessionStorage.getItem('paypal_delivery') || '{}')
+			const savedUserId = sessionStorage.getItem('paypal_userId')
+
+			// Guard: if cart already cleared, another effect run already handled this (React StrictMode double-invoke)
+			if (savedCart.length === 0) {
+				return
+			}
+
+			// Clear sessionStorage BEFORE the API call to prevent double-capture on re-render
+			sessionStorage.removeItem('paypal_cart')
+			sessionStorage.removeItem('paypal_delivery')
+			sessionStorage.removeItem('paypal_userId')
+
+			setIsPaypalLoading(true)
+			axios
+				.post(`http://localhost:8080/paypal/capture/${paypalOrderId}`, {
+					products: savedCart.map((i) => ({ product_id: i.product_id, quantity: i.quantity })),
+					deliveryInfo: savedDelivery,
+					userId: savedUserId,
+					shippingMethod: sessionStorage.getItem('paypal_shipping') || 'standard',
+				})
+				.then(() => {
+					sessionStorage.removeItem('paypal_shipping')
+					cartLocal.delete()
+					setIsSuccess(true)
+					navigate('/customer/check-out', { replace: true })
+				})
+				.catch(() => {
+					message.error('Failed to capture PayPal payment. Please contact support.')
+				})
+				.finally(() => setIsPaypalLoading(false))
+		}
+	}, [location.search])
 
 	// Pre-fill user info if available
 	useEffect(() => {
@@ -126,6 +189,10 @@ const CusCheckOut = () => {
 		}
 		return sum
 	}
+	const calFinalTotal = () => {
+		const shippingFee = SHIPPING_OPTIONS.find((o) => o.id === selectedShipping)?.fee || 0
+		return calTotalCost() + shippingFee
+	}
 	const showListCart = () => {
 		return list.map((item) => {
 			return (
@@ -138,16 +205,21 @@ const CusCheckOut = () => {
 		})
 	}
 
-	const orderProduct = async () => {
+	// Shared pre-flight validation
+	const validateBeforeCheckout = () => {
 		if (!deliveryInfo.delivery_name || !deliveryInfo.delivery_phone || !deliveryInfo.delivery_address) {
 			message.warning('Please fill in all delivery information fields')
-			return
+			return false
 		}
-
 		if (list.length === 0) {
 			message.warning('Your cart is empty')
-			return
+			return false
 		}
+		return true
+	}
+
+	const orderProduct = async () => {
+		if (!validateBeforeCheckout()) return
 
 		let orderList = []
 		list.map((item) => {
@@ -159,6 +231,7 @@ const CusCheckOut = () => {
 		const data = {
 			products: orderList,
 			...deliveryInfo,
+			shippingMethod: selectedShipping,
 		}
 		const order = {
 			data: data,
@@ -166,17 +239,40 @@ const CusCheckOut = () => {
 		}
 
 		try {
+			setIsModalOpen(false)
 			setIsLoading(true)
-			// dispatch returns a promise when using createAsyncThunk + rejectWithValue
 			const resultAction = await dispatch(postOrder(order)).unwrap()
-			// If we reach here, unwrap succeeded
 			cartLocal.delete()
 			setIsSuccess(true)
 		} catch (err) {
-			// Error is already handled/messaged in thunk, but we can catch here if needed
 			console.log("Order failed", err)
 		} finally {
 			setIsLoading(false)
+		}
+	}
+
+	// Handle Pay with PayPal button click
+	const handlePayPal = async () => {
+		if (!validateBeforeCheckout()) return
+
+		const total = calTotalCost()
+		sessionStorage.setItem('paypal_cart', JSON.stringify(list))
+		sessionStorage.setItem('paypal_delivery', JSON.stringify(deliveryInfo))
+		sessionStorage.setItem('paypal_userId', userId)
+		sessionStorage.setItem('paypal_shipping', selectedShipping)
+
+		try {
+			setIsModalOpen(false)
+			setIsPaypalLoading(true)
+			const res = await axios.post('http://localhost:8080/paypal/create-order', {
+				totalAmount: total,
+				shippingMethod: selectedShipping,
+			})
+			const { approvalUrl } = res.data.content
+			window.location.href = approvalUrl
+		} catch {
+			message.error('Failed to initiate PayPal payment.')
+			setIsPaypalLoading(false)
 		}
 	}
 
@@ -297,6 +393,46 @@ const CusCheckOut = () => {
 						</div>
 					</div>
 
+					{/* Shipping Options */}
+					<div className="rounded-2xl border border-grey px-8 py-6 bg-offwhite shadow-sm">
+						<div className="text-[1.5rem] font-semibold text-green_dark1 mb-4">Shipping Method</div>
+						<hr className="mb-4 border-grey" />
+						<div className="space-y-3">
+							{SHIPPING_OPTIONS.map((option) => {
+								const isSelected = selectedShipping === option.id
+								return (
+									<button
+										key={option.id}
+										onClick={() => setSelectedShipping(option.id)}
+										className={`w-full flex items-center gap-4 rounded-xl border-2 px-4 py-3 transition-all ${
+											isSelected
+												? 'border-green_dark1 bg-green_light3'
+												: 'border-grey_light1 bg-white hover:border-green'
+										}`}
+									>
+										<div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${
+											isSelected ? 'bg-green_dark1' : 'bg-grey_light1'
+										}`}>
+											<i className={`fa ${option.icon} text-sm ${
+												isSelected ? 'text-offwhite' : 'text-grey_dark1'
+											}`} />
+										</div>
+										<div className="text-left flex-1">
+											<div className={`font-semibold ${ isSelected ? 'text-green_dark1' : 'text-grey_dark2' }`}>
+												{option.label}
+											</div>
+											<div className="text-xs text-grey_dark1">{option.desc}</div>
+										</div>
+										<div className={`font-bold text-sm ${ isSelected ? 'text-green_dark1' : 'text-grey_dark2' }`}>
+											+${option.fee.toFixed(2)}
+										</div>
+										{isSelected && <i className="fa fa-check-circle text-green_dark1 ml-1" />}
+									</button>
+								)
+							})}
+						</div>
+					</div>
+
 					{/* Order Summary */}
 					<div className="rounded-2xl bg-grey_light1 px-8 py-6 shadow-sm">
 						<div className="text-[1.5rem] font-semibold text-green_dark1 mb-4">Order Summary</div>
@@ -315,23 +451,134 @@ const CusCheckOut = () => {
 							</table>
 						</div>
 
-						<hr className="border-grey my-4" />
+						<hr className="border-grey my-3" />
+						{/* Subtotal row */}
+						<div className="flex justify-between text-sm text-green_dark1 mb-1">
+							<div>Subtotal</div>
+							<span>${calTotalCost().toFixed(2)}</span>
+						</div>
+						{/* Shipping row */}
+						<div className="flex justify-between text-sm text-green_dark1 mb-3">
+							<div className="flex items-center gap-1">
+								<i className={`fa ${ SHIPPING_OPTIONS.find(o => o.id === selectedShipping)?.icon } text-xs`} />
+								{SHIPPING_OPTIONS.find(o => o.id === selectedShipping)?.label}
+							</div>
+							<span>+${(SHIPPING_OPTIONS.find(o => o.id === selectedShipping)?.fee || 0).toFixed(2)}</span>
+						</div>
+						<hr className="border-grey my-3" />
+						{/* Final total */}
 						<div className="flex justify-between text-[1.25rem] font-bold text-green_dark1 mb-6">
 							<div>Total</div>
-							<span className="text-orange">${calTotalCost().toFixed(2)}</span>
+							<span className="text-orange">${calFinalTotal().toFixed(2)}</span>
 						</div>
 
-						<LoadingButton
-							isLoading={isLoading}
-							onClick={orderProduct}
-							className="w-full rounded-xl bg-green_dark1 py-3.5 text-offwhite text-[1.125rem] font-bold shadow-md hover:bg-green_dark1/90 transition-all active:scale-[0.98]"
+						{/* Single Checkout button */}
+						<button
+							onClick={() => {
+								if (validateBeforeCheckout()) setIsModalOpen(true)
+							}}
+							disabled={isLoading || isPaypalLoading}
+							className="w-full rounded-xl bg-green_dark1 py-3.5 text-offwhite text-[1.125rem] font-bold shadow-md hover:bg-green_dark1/90 transition-all active:scale-[0.98] flex items-center justify-center gap-2"
 						>
-							Confirm Order
-						</LoadingButton>
+							{isLoading || isPaypalLoading ? (
+								<><i className="fa fa-spinner fa-spin" /> Processing...</>
+							) : (
+								<><i className="fa fa-lock mr-2" /> Proceed to Payment</>
+							)}
+						</button>
 					</div>
 
 				</div>
 			</div>
+
+			{/* Payment Method Modal */}
+			{isModalOpen && (
+				<div
+					className="fixed inset-0 z-50 flex items-center justify-center"
+					style={{ backgroundColor: 'rgba(44,55,33,0.55)', backdropFilter: 'blur(3px)' }}
+					onClick={() => setIsModalOpen(false)}
+				>
+					<div
+						className="bg-offwhite rounded-2xl shadow-2xl w-full max-w-md mx-4 overflow-hidden"
+						onClick={(e) => e.stopPropagation()}
+					>
+						{/* Modal Header */}
+						<div className="bg-green_dark1 px-6 py-4 flex items-center justify-between">
+							<div>
+								<h2 className="text-offwhite text-[1.25rem] font-bold">Choose Payment Method</h2>
+								<p className="text-green_light1 text-sm mt-0.5">Total: <span className="font-bold text-yellow_dark1">${calFinalTotal().toFixed(2)}</span></p>
+							</div>
+							<button onClick={() => setIsModalOpen(false)} className="text-green_light1 hover:text-offwhite text-xl transition-colors">
+								<i className="fa fa-times" />
+							</button>
+						</div>
+
+						{/* Payment Options */}
+						<div className="p-6 space-y-3">
+
+							{/* PayPal */}
+							<button
+								onClick={handlePayPal}
+								disabled={isPaypalLoading}
+								className="w-full flex items-center gap-4 rounded-xl border-2 border-transparent px-4 py-4 shadow-sm transition-all hover:border-yellow_dark1 hover:shadow-md active:scale-[0.98]"
+								style={{ backgroundColor: '#FFF8E1' }}
+							>
+								<div className="w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: '#FFC439' }}>
+									<span style={{ fontWeight: 900, fontStyle: 'italic', fontSize: '0.75rem', color: '#003087' }}>Pay</span>
+								</div>
+								<div className="text-left">
+									<div className="font-bold text-green_dark2" style={{ color: '#003087' }}>
+										<span style={{ fontStyle: 'italic' }}><span style={{ color: '#003087' }}>Pay</span><span style={{ color: '#009CDE' }}>Pal</span></span>
+									</div>
+									<div className="text-sm text-grey_dark1">Pay securely via PayPal Sandbox</div>
+								</div>
+								<div className="ml-auto"><i className="fa fa-chevron-right text-grey_dark1" /></div>
+							</button>
+
+							{/* COD */}
+							<button
+								onClick={orderProduct}
+								className="w-full flex items-center gap-4 rounded-xl border-2 border-transparent px-4 py-4 bg-green_light3 shadow-sm transition-all hover:border-green hover:shadow-md active:scale-[0.98]"
+							>
+								<div className="w-12 h-12 rounded-full bg-green_dark1 flex items-center justify-center flex-shrink-0">
+									<i className="fa fa-money-bill-wave text-offwhite" />
+								</div>
+								<div className="text-left">
+									<div className="font-bold text-green_dark1">Cash on Delivery (COD)</div>
+									<div className="text-sm text-grey_dark1">Pay when your order arrives</div>
+								</div>
+								<div className="ml-auto"><i className="fa fa-chevron-right text-grey_dark1" /></div>
+							</button>
+
+							{/* MoMo — Coming Soon */}
+							<div className="w-full flex items-center gap-4 rounded-xl px-4 py-4 bg-grey_light1 opacity-60 cursor-not-allowed relative overflow-hidden">
+								<div className="w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: '#D82D8B' }}>
+									<i className="fa fa-mobile-alt text-offwhite text-lg" />
+								</div>
+								<div className="text-left">
+									<div className="font-bold text-grey_dark2">MoMo E-Wallet</div>
+									<div className="text-sm text-grey">Pay with MoMo</div>
+								</div>
+								<span className="ml-auto text-xs font-bold text-grey_dark1 bg-grey_light1 border border-grey rounded-full px-3 py-1">Coming Soon</span>
+							</div>
+
+							{/* Bank Transfer — Coming Soon */}
+							<div className="w-full flex items-center gap-4 rounded-xl px-4 py-4 bg-grey_light1 opacity-60 cursor-not-allowed">
+								<div className="w-12 h-12 rounded-full bg-green_dark2 flex items-center justify-center flex-shrink-0">
+									<i className="fa fa-university text-offwhite" />
+								</div>
+								<div className="text-left">
+									<div className="font-bold text-grey_dark2">Bank Transfer</div>
+									<div className="text-sm text-grey">Direct bank payment</div>
+								</div>
+								<span className="ml-auto text-xs font-bold text-grey_dark1 bg-grey_light1 border border-grey rounded-full px-3 py-1">Coming Soon</span>
+							</div>
+
+							<p className="text-center text-xs text-grey mt-2"><i className="fa fa-lock mr-1" />Payments are secure and encrypted</p>
+						</div>
+					</div>
+				</div>
+			)}
 		</div>
 	)
 }

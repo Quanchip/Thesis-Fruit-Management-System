@@ -42,6 +42,16 @@ export default class orders extends Model {
       delivery_address: {
         type: DataTypes.TEXT,
         allowNull: true
+      },
+      shipping_method: {
+        type: DataTypes.STRING(50),
+        allowNull: true,
+        defaultValue: 'standard'
+      },
+      shipping_fee: {
+        type: DataTypes.FLOAT,
+        allowNull: true,
+        defaultValue: 0
       }
     }, {
       sequelize,
