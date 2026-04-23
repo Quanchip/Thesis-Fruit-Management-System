@@ -16,31 +16,36 @@ const ChatBox = () => {
     const messagesEndRef = useRef(null)
     const dispatch = useDispatch()
     const { userId } = useSelector((state) => state.userReducer)
-    const { messages, adminId } = useSelector((state) => state.chatReducer)
+    const { messages, adminId, isOpen } = useSelector((state) => state.chatReducer)
 
-    // Connect socket and fetch admin info
+    // ── Effect 1: Create socket ONCE on mount.
+    // Named handler functions and forceNew:true for a clean connection.
+    //
+    // HOW STRICTMODE IS HANDLED:
+    //   Mount   → socketRef is null → socket + listeners created → socketRef set
+    //   Unmount → cleanup runs → does nothing (both socket AND listeners kept alive)
+    //   Remount → socketRef is NOT null → guard fires, exits early → no duplicate socket/listener
+    //
+    //  ❗ Do NOT remove listeners in cleanup — doing so makes the socket deaf on remount.
+    //  ❗ Do NOT set socketRef.current = null in cleanup — that defeats the guard.
+    //  See PROBLEM_SOLUTIONS.md for full root cause analysis.
     useEffect(() => {
-        // Prevent double connection in StrictMode
-        if (socketRef.current) return
+        if (socketRef.current) return // StrictMode guard
 
-        const newSocket = io('http://localhost:8080')
-        socketRef.current = newSocket
+        const socket = io('http://localhost:8080', { forceNew: true })
+        socketRef.current = socket
 
-        // Join room
-        if (userId) {
-            newSocket.emit('join_room', userId)
-        }
-
-        // Listen for messages
-        newSocket.on('receive_message', (data) => {
+        const handleReceiveMessage = (data) => {
             dispatch(addMessage(data))
-        })
+        }
+        const handleTyping = () => setIsTyping(true)
+        const handleStopTyping = () => setIsTyping(false)
 
-        // Typing indicator
-        newSocket.on('user_typing', () => setIsTyping(true))
-        newSocket.on('user_stop_typing', () => setIsTyping(false))
+        socket.on('receive_message', handleReceiveMessage)
+        socket.on('user_typing', handleTyping)
+        socket.on('user_stop_typing', handleStopTyping)
 
-        // Fetch admin info
+        // Fetch admin info once
         axios
             .get('http://localhost:8080/chat/admin')
             .then((res) => {
@@ -50,13 +55,18 @@ const ChatBox = () => {
             })
             .catch((err) => console.error('Error fetching admin:', err))
 
-        return () => {
-            if (socketRef.current) {
-                socketRef.current.disconnect()
-                socketRef.current = null
-            }
+        // No cleanup needed: socket + listeners must survive StrictMode's fake unmount.
+        // If the component truly unmounts (unlikely — ChatBox lives inside ChatBubble
+        // with display:none toggle), the socket GC's itself when the page unloads.
+    }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+    // ── Effect 2: Join the user's room when userId becomes available,
+    // without recreating the socket (which would stack listeners).
+    useEffect(() => {
+        if (userId && socketRef.current) {
+            socketRef.current.emit('join_room', userId)
         }
-    }, [userId, dispatch])
+    }, [userId])
 
     // Fetch chat history when adminId is available
     useEffect(() => {
@@ -74,8 +84,12 @@ const ChatBox = () => {
 
     // Auto-scroll to bottom
     useEffect(() => {
-        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-    }, [messages])
+        if (isOpen) {
+            setTimeout(() => {
+                messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+            }, 100)
+        }
+    }, [messages, isOpen])
 
     const handleSend = () => {
         if (!inputMessage.trim() || !socketRef.current || !adminId) return

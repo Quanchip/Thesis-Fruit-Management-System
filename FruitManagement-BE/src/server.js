@@ -70,16 +70,28 @@ io.on("connection", (socket) => {
         sender_name: senderUser?.full_name || "Unknown",
       };
 
-      // Find if sender is admin or customer
+      // Determine if sender is admin
       const isAdmin = await model.users.findOne({ where: { user_id: senderId, role_id: 1 } });
-      
-      // Emit properly: receiver, admin_room, and ONLY to sender if they aren't already an admin
-      let emitChain = io.to(`user_${receiverId}`).to("admin_room");
-      if (!isAdmin) {
-          emitChain = emitChain.to(`user_${senderId}`);
+
+      /**
+       * DELIVERY RULES (DO NOT CHANGE without reading this comment):
+       *
+       * Admins join BOTH `user_{adminId}` AND `admin_room`.
+       * Emitting to BOTH rooms for a single message causes DUPLICATE delivery to the admin.
+       *
+       * Rule:
+       *  - Customer sends → emit to `admin_room` (covers ALL admins) + `user_{senderId}` (echo back to customer)
+       *  - Admin sends    → emit to `user_{receiverId}` (the customer) + `admin_room` (echo back to all admins)
+       *
+       * Never emit to `user_{adminId}` AND `admin_room` at the same time — that causes duplicates.
+       */
+      if (isAdmin) {
+        // Admin replying to a customer
+        io.to(`user_${receiverId}`).to("admin_room").emit("receive_message", messageData);
+      } else {
+        // Customer sending to admin — echo back to sender + notify admin_room
+        io.to(`user_${senderId}`).to("admin_room").emit("receive_message", messageData);
       }
-      
-      emitChain.emit("receive_message", messageData);
 
     } catch (error) {
       console.error("Error saving message:", error);

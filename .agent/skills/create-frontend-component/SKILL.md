@@ -74,3 +74,56 @@ export default ExampleComponent
 - Components should be placed inside `src/components/` (often within feature specific folders if complex).
 - Always name the file in PascalCase (e.g., `FeatureComponent.jsx`).
 - Always use `export default ComponentName` at the bottom.
+
+## 6. ⚠️ Socket.IO Integration — MANDATORY PATTERN
+
+**ALWAYS use this exact pattern when writing any component that connects to a Socket.IO server. Failure to follow it causes DUPLICATE messages.**
+
+This was a real, hard-to-debug bug in this project (see `PROJECT.md` → Known Pitfalls).
+
+```jsx
+const socketRef = useRef(null)
+
+// ── Effect 1: Create socket ONCE. deps MUST be [].
+// NEVER add userId or any changing value to the deps — doing so re-runs the effect
+// and stacks a second listener onto the socket, causing duplicate messages.
+useEffect(() => {
+  if (socketRef.current) return // Guard against React StrictMode double-mount
+
+  const socket = io('http://localhost:8080', { forceNew: true })
+  socketRef.current = socket
+
+  // MUST use named functions (not inline arrows) so .off() can remove them exactly
+  const handleReceiveMessage = (data) => { /* dispatch or setState */ }
+  const handleTyping = () => { /* setState */ }
+
+  socket.on('receive_message', handleReceiveMessage)
+  socket.on('user_typing', handleTyping)
+
+  return () => {
+    // Only remove our listeners. DO NOT call socket.disconnect() here.
+    // Disconnecting resets socketRef.current = null in some patterns, which lets
+    // StrictMode remount bypass the guard and create a duplicate socket+listener.
+    socket.off('receive_message', handleReceiveMessage)
+    socket.off('user_typing', handleTyping)
+    // ❌ socket.disconnect()      ← NEVER in cleanup
+    // ❌ socketRef.current = null ← NEVER in cleanup
+  }
+}, []) // ← MUST be empty array — no exceptions
+
+// ── Effect 2: Join rooms AFTER userId is available — separate from Effect 1
+useEffect(() => {
+  if (userId && socketRef.current) {
+    socketRef.current.emit('join_room', userId)
+  }
+}, [userId])
+```
+
+**Key rules summary**:
+| Rule | Why |
+|---|---|
+| `useEffect(fn, [])` for socket | Prevents re-creating socket when userId/state changes |
+| `if (socketRef.current) return` | Blocks React StrictMode double-mount |
+| Named handler functions | `.off(fn)` only works with the same function reference |
+| `.off(fn)` not `removeAllListeners()` | Keeps socket.io's internal handlers intact |
+| Separate `[userId]` effect for join | Joining rooms without recreating the socket |

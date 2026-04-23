@@ -20,7 +20,8 @@ const chatReducer = createSlice({
 		addMessage: (state, action) => {
 			// Avoid duplicates
 			const exists = state.messages.find(
-				(m) => m.message_id === action.payload.message_id,
+				(m) => String(m.message_id) === String(action.payload.message_id) ||
+					   (m.message === action.payload.message && m.created_at === action.payload.created_at)
 			)
 			if (!exists) {
 				state.messages.push(action.payload)

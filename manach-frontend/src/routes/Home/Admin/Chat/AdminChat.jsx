@@ -26,31 +26,38 @@ const AdminChat = () => {
 		activeChatRef.current = activeChat
 	}, [activeChat])
 
-	// Connect socket
+	// ── Effect 1: Create socket ONCE on mount. Named handlers so .off() cleans them precisely.
+	//
+	// HOW STRICTMODE IS HANDLED:
+	//   Mount   → socketRef is null → socket + listeners created → socketRef set
+	//   Unmount → cleanup runs → does nothing (both socket AND listeners kept alive)
+	//   Remount → socketRef is NOT null → guard fires, exits early → no duplicate socket/listener
+	//
+	//  ❗ Do NOT remove listeners in cleanup — doing so makes the socket deaf on remount.
+	//  ❗ Do NOT set socketRef.current = null in cleanup — that defeats the guard.
+	//  See PROBLEM_SOLUTIONS.md for full root cause analysis.
 	useEffect(() => {
-		if (socketRef.current) return
+		if (socketRef.current) return // StrictMode guard
 
-		const newSocket = io('http://localhost:8080')
-		socketRef.current = newSocket
+		const userIdRef = { current: null } // mutable ref to read latest userId inside handler
 
-		if (userId) {
-			newSocket.emit('join_room', userId)
-			newSocket.emit('join_admin_room')
-		}
+		const socket = io('http://localhost:8080', { forceNew: true })
+		socketRef.current = socket
+		// Attach the ref so Effect 2 can update it
+		socketRef.current._userIdRef = userIdRef
 
-		newSocket.on('receive_message', (data) => {
-			// Deduplicate
-			// Only add to the chat window if this message belongs to the active conversation
+		const handleReceiveMessage = (data) => {
+			const myId = userIdRef.current
 			const currentActive = activeChatRef.current
 			if (currentActive) {
 				const otherUserForMsg =
-					String(data.sender_id) === String(userId)
+					String(data.sender_id) === String(myId)
 						? String(data.receiver_id)
 						: String(data.sender_id)
 				if (String(currentActive.user_id) === otherUserForMsg) {
 					setMessages((prev) => {
 						const exists = prev.find(
-							(m) => String(m.message_id) === String(data.message_id) || 
+							(m) => String(m.message_id) === String(data.message_id) ||
 								   (m.message === data.message && m.created_at === data.created_at)
 						)
 						if (exists) return prev
@@ -59,40 +66,27 @@ const AdminChat = () => {
 				}
 			}
 
-			// Determine the customer user id
 			const otherUserId =
-				String(data.sender_id) === String(userId)
+				String(data.sender_id) === String(myId)
 					? data.receiver_id
 					: data.sender_id
 
-			// Increment unread if message is from customer and not the active chat
-			if (String(data.sender_id) !== String(userId)) {
-				const currentActive = activeChatRef.current
-				if (
-					!currentActive ||
-					String(currentActive.user_id) !== String(otherUserId)
-				) {
+			if (String(data.sender_id) !== String(myId)) {
+				const currActive = activeChatRef.current
+				if (!currActive || String(currActive.user_id) !== String(otherUserId)) {
 					dispatch(incrementUnread(otherUserId))
 				}
 			}
 
-			// Update conversation list
 			setConversations((prev) => {
 				const updated = prev.map((conv) => {
 					if (String(conv.user_id) === String(otherUserId)) {
-						return {
-							...conv,
-							last_message: data.message,
-							last_message_time: data.created_at,
-						}
+						return { ...conv, last_message: data.message, last_message_time: data.created_at }
 					}
 					return conv
 				})
-
-				const exists = updated.find(
-					(conv) => String(conv.user_id) === String(otherUserId),
-				)
-				if (!exists && String(data.sender_id) !== String(userId)) {
+				const exists = updated.find((conv) => String(conv.user_id) === String(otherUserId))
+				if (!exists && String(data.sender_id) !== String(myId)) {
 					updated.unshift({
 						user_id: data.sender_id,
 						full_name: data.sender_name || 'Customer',
@@ -100,21 +94,28 @@ const AdminChat = () => {
 						last_message_time: data.created_at,
 					})
 				}
-
 				return updated
 			})
-		})
-
-		newSocket.on('user_typing', () => setIsTyping(true))
-		newSocket.on('user_stop_typing', () => setIsTyping(false))
-
-		return () => {
-			if (socketRef.current) {
-				socketRef.current.disconnect()
-				socketRef.current = null
-			}
 		}
-	}, [userId, dispatch])
+
+		const handleTyping = () => setIsTyping(true)
+		const handleStopTyping = () => setIsTyping(false)
+
+		socket.on('receive_message', handleReceiveMessage)
+		socket.on('user_typing', handleTyping)
+		socket.on('user_stop_typing', handleStopTyping)
+
+		// No cleanup needed: socket + listeners must survive StrictMode's fake unmount.
+	}, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+	// ── Effect 2: Join rooms when userId is available, without recreating the socket.
+	useEffect(() => {
+		if (userId && socketRef.current) {
+			socketRef.current._userIdRef.current = userId
+			socketRef.current.emit('join_room', userId)
+			socketRef.current.emit('join_admin_room')
+		}
+	}, [userId])
 
 	// Fetch conversations and initialize unread counts
 	useEffect(() => {
